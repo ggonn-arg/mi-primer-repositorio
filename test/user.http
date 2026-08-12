@@ -1,1 +1,32 @@
-get http://localhost:3000
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "password": "12345Password",
+    "displayName": "Administrador Cafetería",
+    "email": "admin@cafeteria.com",
+    "role": "admin"
+}
+###
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "username": "mozo1",
+    "password": "12345Password",
+    "displayName": "Lucas Mozo",
+    "email": "lucas@cafeteria.com",
+    "role": "empleado"
+}
+###
+POST http://localhost:3000/api/users
+Content-Type: application/json
+
+{
+    "username": "cliente1",
+    "password": "12345Password",
+    "displayName": "Juan Cliente",
+    "email": "juan@gmail.com",
+    "role": "cliente"
+}
