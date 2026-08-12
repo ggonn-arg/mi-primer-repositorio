@@ -6,6 +6,7 @@ export function configureUserRouter(router) {
 
     console.log('Configurando rutas de usuario');
 
+    // GET /users requiere rol admin
     router.get('/users', checkRoleMiddleware(['admin']), async (req, res, next) => {
         try {
             const users = await userService.getList();
@@ -20,7 +21,8 @@ export function configureUserRouter(router) {
         }
     });
 
-    router.post('/users', checkRoleMiddleware(['admin']), async (req, res, next) => {
+    // POST /users PÚBLICO (Sin middleware) para permitir crear usuarios y el admin inicial
+    router.post('/users', async (req, res, next) => {
         try {
             const user = req.body; 
             const newUser = await userService.add(user);
@@ -30,6 +32,7 @@ export function configureUserRouter(router) {
         }
     });
 
+    // DELETE y PATCH protegidos
     router.delete('/users/:name', checkRoleMiddleware(['admin']), async (req, res, next) => {
         try {
             const name = req.params.name;

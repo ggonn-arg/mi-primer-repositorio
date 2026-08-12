@@ -50,7 +50,7 @@ Content-Type: application/json
     "clienteNombre": "Carlos Gómez",
     "items": [
         {
-            "productoId": "REEMPLAZAR_POR_ID_DE_PRODUCTO",
+            "productoId": "6a7beb8204158ab4b53e5cef",
             "cantidad": 2
         }
     ]
