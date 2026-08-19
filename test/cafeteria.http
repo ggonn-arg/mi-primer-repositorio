@@ -59,3 +59,88 @@ Content-Type: application/json
 ### 5. Consultar Total a Cobrar de la Mesa 4
 GET http://localhost:3000/api/orders/mesa/4
 Authorization: Bearer {{adminToken}}
+
+### 1. Login como Mozo (Empleado)
+# @name loginMozo
+POST http://localhost:3000/api/login
+Content-Type: application/json
+
+{
+    "username": "mozo1",
+    "password": "12345Password"
+}
+
+### Guardar Token del Mozo
+@mozoToken = {{loginMozo.response.body.authorizationToken}}
+
+### 2. Mozo crea una comanda para la Mesa 4
+# (Asegurate de pegar un ID real de producto)
+POST http://localhost:3000/api/orders
+Authorization: Bearer {{mozoToken}}
+Content-Type: application/json
+
+{
+    "numeroMesa": 4,
+    "clienteNombre": "Carlos Gómez",
+    "items": [
+        {
+            "productoId": "PEGAR_ID_PRODUCTO_AQUI",
+            "cantidad": 2
+        }
+    ]
+}
+
+### 3. Mozo consulta la cuenta de la Mesa 4
+GET http://localhost:3000/api/orders/mesa/4
+Authorization: Bearer {{mozoToken}}
+
+### 4. Mozo cambia el estado a "pagado" cuando liquidan la cuenta
+# (Reemplaza PEGAR_ID_ORDEN_AQUI por el _id que devolvió el POST o GET)
+PATCH http://localhost:3000/api/orders/PEGAR_ID_ORDEN_AQUI/status
+Authorization: Bearer {{mozoToken}}
+Content-Type: application/json
+
+{
+    "estado": "pagado"
+}
+
+### 5. Mozo elimina/cancela una orden si hubo un error
+DELETE http://localhost:3000/api/orders/PEGAR_ID_ORDEN_AQUI
+Authorization: Bearer {{mozoToken}}
+
+### 1. Iniciar sesión como Cliente
+# @name loginCliente
+POST http://localhost:3000/api/login
+Content-Type: application/json
+
+{
+    "username": "cliente1",
+    "password": "12345Password"
+}
+
+### Guardar Token del Cliente
+@clienteToken = {{loginCliente.response.body.authorizationToken}}
+
+### 2. Cliente consulta la carta de productos
+GET http://localhost:3000/api/products
+Authorization: Bearer {{clienteToken}}
+
+### 3. Cliente hace su pedido (PERMITIDO)
+POST http://localhost:3000/api/orders
+Authorization: Bearer {{clienteToken}}
+Content-Type: application/json
+
+{
+    "numeroMesa": 2,
+    "clienteNombre": "Juan Cliente",
+    "items": [
+        {
+            "productoId": "PEGAR_ID_PRODUCTO_AQUI",
+            "cantidad": 1
+        }
+    ]
+}
+
+### 4. PRUEBA DE SEGURIDAD: El cliente NO puede consultar la mesa (debe dar 401/403)
+GET http://localhost:3000/api/orders/mesa/2
+Authorization: Bearer {{clienteToken}}

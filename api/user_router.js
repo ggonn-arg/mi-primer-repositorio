@@ -6,7 +6,7 @@ export function configureUserRouter(router) {
 
     console.log('Configurando rutas de usuario');
 
-    // GET /users requiere rol admin
+    // 1. GET /users - Solo ADMIN puede ver la lista de usuarios
     router.get('/users', checkRoleMiddleware(['admin']), async (req, res, next) => {
         try {
             const users = await userService.getList();
@@ -21,8 +21,8 @@ export function configureUserRouter(router) {
         }
     });
 
-    // POST /users PÚBLICO (Sin middleware) para permitir crear usuarios y el admin inicial
-    router.post('/users', async (req, res, next) => {
+    // 2. POST /users - Solo ADMIN puede crear nuevos usuarios
+    router.post('/users', checkRoleMiddleware(['admin']), async (req, res, next) => {
         try {
             const user = req.body; 
             const newUser = await userService.add(user);
@@ -32,7 +32,7 @@ export function configureUserRouter(router) {
         }
     });
 
-    // DELETE y PATCH protegidos
+    // 3. DELETE /users/:name - Solo ADMIN puede borrar usuarios
     router.delete('/users/:name', checkRoleMiddleware(['admin']), async (req, res, next) => {
         try {
             const name = req.params.name;
@@ -43,6 +43,7 @@ export function configureUserRouter(router) {
         }
     });
 
+    // 4. PATCH /users/:name - Solo ADMIN puede actualizar usuarios
     router.patch('/users/:name', checkRoleMiddleware(['admin']), async (req, res, next) => {
         try {
             const name = req.params.name;

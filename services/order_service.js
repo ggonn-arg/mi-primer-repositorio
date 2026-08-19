@@ -61,4 +61,9 @@ export class OrderService {
         order.estado = nuevoEstado;
         return await order.save();
     }
+    async deleteOrder(orderId) {
+        const order = await this.orderRepo.findById(orderId);
+        if (!order) throw new Error('El pedido no existe');
+        return await this.orderRepo.findByIdAndDelete(orderId);
+    }
 }

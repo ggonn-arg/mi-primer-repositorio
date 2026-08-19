@@ -1,57 +1,65 @@
-import { getDependency } from '../dependency.js';
 import bcrypt from 'bcrypt';
+import { getDependency } from '../dependency.js';
 
 export class UserService {
-    constructor(){
+    constructor() {
         this.userRepo = getDependency('userRepo');
     }
 
-    async getList(){
+    async getList() {
         return await this.userRepo.find();
     }
-    
-    async add(user){
-        if (!user.username)
-            throw new Error('El nombre de usuario es obligatorio');
 
-        if (!user.password)
-            throw new Error('La contraseña es obligatoria');
-
-        if (user.password === '1234')
-            throw new Error('La contraseña no puede ser 1234');
-
-        const existentUser = await this.userRepo.find({
-            username: user.username
-        });
-
-        if (existentUser.length)
-            throw new Error('El nombre de usuario ya existe');
-
-        user.password = await bcrypt.hash(user.password, 10);
-
-        return await this.userRepo.create(user);
+    async getByUsername(username) {
+        return await this.userRepo.findOne({ username: username });
     }
 
-    async deleteByName(username){
-        const user = await this.userRepo.findOne({ username });
-        if (!user)
-            throw new Error('El usuario no existe');
-            
-        await this.userRepo.deleteOne({ username });
-    }
+    async add(userData) {
+        // Validaciones básicas
+        if (!userData.username) throw new Error('El username es obligatorio');
+        if (!userData.password) throw new Error('La contraseña es obligatoria');
+        if (!userData.displayName) throw new Error('El displayName es obligatorio');
+        if (!userData.email) throw new Error('El email es obligatorio');
 
-    async updateByName(username, userData){
-        const existentUser = await this.userRepo.findOne({ username });
-        if (!existentUser)
-            throw new Error('El usuario no existe');
-
-        if (userData.password && userData.password === '1234')
-            throw new Error('La contraseña no puede ser 1234');
-
-        if (userData.password) {
-            userData.password = await bcrypt.hash(userData.password, 10);
+        // Verificar si el usuario ya existe
+        const existingUser = await this.userRepo.findOne({ username: userData.username });
+        if (existingUser) {
+            throw new Error(`El usuario ${userData.username} ya existe`);
         }
 
-        return await this.userRepo.findOneAndUpdate({ username }, userData, { new: true });
-    }   
+        // Hashear la contraseña antes de guardar (10 rondas de salt)
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(userData.password, saltRounds);
+
+        const newUser = {
+            ...userData,
+            password: hashedPassword
+        };
+
+        return await this.userRepo.create(newUser);
+    }
+
+    async updateByName(username, updateData) {
+        const user = await this.userRepo.findOne({ username: username });
+        if (!user) throw new Error('Usuario no encontrado');
+
+        // Si se envía una nueva contraseña, la hasheamos también
+        if (updateData.password) {
+            const saltRounds = 10;
+            updateData.password = await bcrypt.hash(updateData.password, saltRounds);
+        }
+
+        return await this.userRepo.findOneAndUpdate(
+            { username: username }, 
+            updateData, 
+            { new: true }
+        );
+    }
+
+    async deleteByName(username) {
+        const user = await this.userRepo.findOne({ username: username });
+        if (!user) throw new Error('Usuario no encontrado');
+
+        await this.userRepo.findOneAndDelete({ username: username });
+    }
 }

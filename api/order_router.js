@@ -4,18 +4,19 @@ import checkRoleMiddleware from '../middlewares/check_role_middleware.js';
 export function configureOrderRouter(router) {
     const orderService = getDependency('orderService');
 
-    // Cliente, empleado o admin pueden crear un pedido
-    router.post('/orders', checkRoleMiddleware(['admin', 'empleado', 'cliente']), async (req, res, next) => {
+    // 1. POST /orders - CREAR PEDIDO (Permitido para CLIENTE y EMPLEADO)
+    router.post('/orders', checkRoleMiddleware(['cliente', 'empleado']), async (req, res, next) => {
         try {
-            const order = await orderService.createOrder(req.body, req.session);
-            res.json(order);
+            const orderData = req.body;
+            const newOrder = await orderService.createOrder(orderData, req.user);
+            res.json(newOrder);
         } catch (error) {
             next(error);
         }
     });
 
-    // Empleados y admin ven todos los pedidos activos
-    router.get('/orders', checkRoleMiddleware(['admin', 'empleado']), async (req, res, next) => {
+    // 2. GET /orders - Ver todos los pedidos activos (SOLO EMPLEADO)
+    router.get('/orders', checkRoleMiddleware(['empleado']), async (req, res, next) => {
         try {
             const orders = await orderService.getActiveOrders();
             res.json(orders);
@@ -24,23 +25,42 @@ export function configureOrderRouter(router) {
         }
     });
 
-    // Consultar pedidos/cuenta de una mesa específica
-    router.get('/orders/mesa/:numeroMesa', checkRoleMiddleware(['admin', 'empleado', 'cliente']), async (req, res, next) => {
+    // 3. GET /orders/mesa/:numeroMesa - Consultar total de una mesa (SOLO EMPLEADO)
+    router.get('/orders/mesa/:numeroMesa', checkRoleMiddleware(['empleado']), async (req, res, next) => {
         try {
-            const orders = await orderService.getOrdersByMesa(req.params.numeroMesa);
-            const totalMesa = orders.reduce((sum, ord) => sum + ord.total, 0);
-            res.json({ numeroMesa: req.params.numeroMesa, pedidosActivos: orders, totalACobrar: totalMesa });
+            const numeroMesa = parseInt(req.params.numeroMesa);
+            const orders = await orderService.getOrdersByMesa(numeroMesa);
+            
+            const totalMesa = orders.reduce((sum, order) => sum + order.total, 0);
+
+            res.json({
+                numeroMesa,
+                pedidos: orders,
+                totalACobrar: totalMesa
+            });
         } catch (error) {
             next(error);
         }
     });
 
-    // Empleado o Admin cambian el estado del pedido (ej: pasar a 'pagado')
-    router.patch('/orders/:id/status', checkRoleMiddleware(['admin', 'empleado']), async (req, res, next) => {
+    // 4. PATCH /orders/:id/status - Cambiar estado del pedido (SOLO EMPLEADO)
+    router.patch('/orders/:id/status', checkRoleMiddleware(['empleado']), async (req, res, next) => {
         try {
+            const { id } = req.params;
             const { estado } = req.body;
-            const updatedOrder = await orderService.updateStatus(req.params.id, estado);
+            const updatedOrder = await orderService.updateStatus(id, estado);
             res.json(updatedOrder);
+        } catch (error) {
+            next(error);
+        }
+    });
+
+    // 5. DELETE /orders/:id - Cancelar/Eliminar pedido (SOLO EMPLEADO)
+    router.delete('/orders/:id', checkRoleMiddleware(['empleado']), async (req, res, next) => {
+        try {
+            const { id } = req.params;
+            await orderService.deleteOrder(id);
+            res.json({ message: 'Pedido cancelado/eliminado' });
         } catch (error) {
             next(error);
         }

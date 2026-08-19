@@ -1,51 +1,38 @@
-import { getDependency } from '../dependency.js';
 import bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
+import { getDependency } from '../dependency.js';
 
 export class LoginService {
-    constructor(){
+    constructor() {
         this.userRepo = getDependency('userRepo');
         this.sessionRepo = getDependency('sessionRepo');
     }
 
-    createToken(){
-        const array = new Uint8Array(32);
-        crypto.getRandomValues(array);
-        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');  
-    }
-
-    async login(data){
-        if (!data.username)
-            throw new Error('El nombre de usuario es obligatorio');
-
-        if (!data.password)
-            throw new Error('La contraseña es obligatoria');
-
-        const user = await this.userRepo.findOne({
-            username: data.username
-        });  
-
-        if (!user)
+    async login(username, password) {
+        const user = await this.userRepo.findOne({ username: username });
+        if (!user) {
             throw new Error('Usuario o contraseña incorrectos');
+        }
 
-        const isMatch = await bcrypt.compare(data.password, user.password);
-        if (!isMatch)
+        // Comparar contraseña con el hash de bcrypt
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
             throw new Error('Usuario o contraseña incorrectos');
+        }
 
-        var authorizationToken;
-        do { 
-            authorizationToken = this.createToken();
-        } while (await this.sessionRepo.findOne({ authorizationToken }));
+        // Generar token criptográfico
+        const token = randomBytes(32).toString('hex');
 
-        const session = await this.sessionRepo.create({
+        // Guardar la sesión con el nombre exacto de campo que espera tu esquema
+        await this.sessionRepo.create({
+            authorizationToken: token,
             username: user.username,
-            authorizationToken,        
-            role: user.role,    
-            open: new Date().toISOString()
+            role: user.role
         });
 
         return {
-            authorizationToken: session.authorizationToken,
-            username: session.username,
+            authorizationToken: token,
+            username: user.username,
             role: user.role
         };
     }
